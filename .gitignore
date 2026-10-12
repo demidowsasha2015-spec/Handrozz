@@ -26,3 +26,4 @@ data/recordings/
 # IDE
 .idea/
 *.swp
+*.zip
