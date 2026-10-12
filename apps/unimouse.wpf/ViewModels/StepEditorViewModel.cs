@@ -264,9 +264,17 @@ public partial class StepEditorViewModel : ObservableObject
     public bool CanEdit => !IsReadOnly;
 
     public StepEditorViewModel(MacroDefinition macro, string sourceFileName)
+        : this(macro, sourceFileName, isNew: false)
+    {
+    }
+
+    /// <param name="isNew">True for drafts not yet in the library (e.g. the
+    /// recorder's review-before-save gate): saving then creates a new file.</param>
+    public StepEditorViewModel(MacroDefinition macro, string sourceFileName, bool isNew)
     {
         Macro = macro;
         SourceFileName = sourceFileName;
+        IsNew = isNew;
         Rows.CollectionChanged += (_, e) =>
         {
             Reindex();

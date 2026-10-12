@@ -40,6 +40,8 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="4">
                     <Button Content="New" Command="{Binding NewBlankMacroCommand}" Padding="10,4" />
+                    <Button Content="Record" Command="{Binding StartRecordingCommand}" Padding="10,4" Margin="6,0,0,0"
+                            ToolTip="Open the recorder dialog (hooks active only while it is open)" />
                     <Button Content="Reload" Command="{Binding ReloadLibraryCommand}" Padding="10,4" Margin="6,0" />
                     <Button Content="Edit" Command="{Binding EditSelectedCommand}"
                             IsEnabled="{Binding HasSelection}" Padding="10,4" Margin="6,0,0,0" />

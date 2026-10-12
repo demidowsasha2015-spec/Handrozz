@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UniMouse.Core.Model;
@@ -18,6 +19,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
 {
     /// <summary>Raised when the user asks to edit a macro; MainWindow opens StepEditorWindow.</summary>
     public event Action<MacroListItem>? EditRequested;
+
+    /// <summary>
+    /// Raised when the user starts a recording session; MainWindow opens the
+    /// modal RecorderWindow bound to the supplied view model. The VM is created
+    /// here so MainViewModel stays free of Window types (testable seam).
+    /// </summary>
+    public event Action<RecorderViewModel>? RecordRequested;
 
     private readonly MacroStore _store;
     private readonly QwenApiClient _api;
@@ -122,6 +130,53 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (!validation.IsValid) return; // never persist invalid macros
         _store.Save(macro);
         ReloadLibrary();
+    }
+
+    // ---------------------------------------------------------------- recorder
+
+    /// <summary>
+    /// Opens the modal recorder session. Recording uses passive low-level
+    /// hooks ONLY while this dialog is open (see InputCapture safety posture);
+    /// hooks are removed on stop/close no matter what. Recorded steps always
+    /// go through a mandatory review-before-save gate in the step editor.
+    /// </summary>
+    [RelayCommand]
+    private void StartRecording()
+    {
+        if (IsPlaying)
+        {
+            StatusText = "Cannot record while a macro is playing.";
+            return;
+        }
+
+        var vm = new RecorderViewModel();
+        vm.ReviewRequested += steps =>
+        {
+            void Open()
+            {
+                // Review-before-save gate: recorded steps open in the step
+                // editor as a NEW macro draft. Nothing lands in the library
+                // until the user reviews and explicitly confirms the save.
+                var draft = new MacroDefinition
+                {
+                    Id = $"recorded-{DateTime.Now:yyyyMMdd-HHmmss}",
+                    Name = vm.MacroName,
+                    Description = "Created with the built-in recorder.",
+                    Author = Environment.UserName,
+                    Steps = steps,
+                };
+                EditRequested?.Invoke(new MacroListItem($"{draft.Id}.unimacro.json", draft));
+                StatusText = $"Recorded {steps.Count} step(s) — review in the editor before saving.";
+            }
+
+            // The event is raised through the UI dispatcher already, but stay
+            // defensive so it also works under any other message pump.
+            var dispatcher = Dispatcher.CurrentDispatcher;
+            if (dispatcher.CheckAccess()) Open();
+            else dispatcher.Invoke(Open);
+        };
+        RecordRequested?.Invoke(vm);
+        StatusText = "Recorder opened. Hooks active only until you press Stop or close the dialog.";
     }
 
     // ------------------------------------------------------------------- AI

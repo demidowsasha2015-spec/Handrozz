@@ -18,6 +18,7 @@ public partial class MainWindow : Window
         _store = store;
         InitializeComponent();
         viewModel.EditRequested += OpenEditor;
+        viewModel.RecordRequested += OpenRecorder;
 
         Loaded += (_, _) =>
         {
@@ -67,10 +68,24 @@ public partial class MainWindow : Window
     private void OpenEditor(MacroListItem item)
     {
         var vm = (MainViewModel)DataContext;
-        var editorVm = new StepEditorViewModel(item.Definition, item.FileName);
+
+        // Drafts (e.g. from the recorder's review-before-save gate) are not in
+        // the library yet: saving them must CREATE a new file instead of trying
+        // to overwrite an existing macro with the same name.
+        var editorVm = item.IsDraft
+            ? new StepEditorViewModel(item.Definition, isNew: true)
+            : new StepEditorViewModel(item.Definition, item.FileName);
+
         var win = new StepEditorWindow(editorVm, _store) { Owner = this };
         win.Saved += () => vm.NotifyMacroSaved(item.FileName);
         win.ShowDialog();
+    }
+
+    private void OpenRecorder(RecorderViewModel recorderVm)
+    {
+        // Modal: recording sessions cannot run in the background. Closing this
+        // window always removes the low-level hooks (RecorderWindow.Closed).
+        new RecorderWindow(recorderVm) { Owner = this }.ShowDialog();
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

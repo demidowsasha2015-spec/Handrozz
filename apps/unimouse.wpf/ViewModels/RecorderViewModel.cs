@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UniMouse.Core.Model;
@@ -32,8 +33,11 @@ public partial class RecorderViewModel : ObservableObject, IDisposable
         if (IsRecording) return;
 
         _capture = new InputCapture(new RecorderOptions());
+        // Marshal to the UI thread defensively: if a message pump other than
+        // the WPF dispatcher ever drives the hook, Application.Current may be null.
+        var dispatcher = Dispatcher.CurrentDispatcher;
         _capture.StepsChanged += count =>
-            Application.Current.Dispatcher.BeginInvoke(() => StepCount = count);
+            dispatcher.BeginInvoke(() => StepCount = count);
         try
         {
             _capture.Start();
