@@ -63,8 +63,10 @@ public sealed class HotkeyManager : IDisposable
 
     public void Dispose()
     {
-        foreach (var id in _byId.Keys)
-            UnregisterHotKey(_hwnd, id);
+        // Snapshot + clear first so a second call is a no-op.
+        var ids = _byId.Keys.ToArray();
         _byId.Clear();
+        foreach (var id in ids)
+            UnregisterHotKey(_hwnd, id);
     }
 }

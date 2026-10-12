@@ -49,10 +49,9 @@ public sealed class EmergencyStopHotkey : IDisposable
 
     public void Dispose()
     {
-        if (_registered)
-        {
-            UnregisterHotKey(_hwnd, HotkeyId);
-            _registered = false;
-        }
+        if (!_registered)
+            return;
+        _registered = false;   // set first: idempotent even if Closed fires twice
+        UnregisterHotKey(_hwnd, HotkeyId);
     }
 }
