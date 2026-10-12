@@ -54,7 +54,7 @@ class MacroStep(BaseModel):
     button: MouseButton | None = None
     clicks: int = Field(default=1, ge=1, le=5)
     scroll: ScrollDirection | None = None
-    scrollAmount: int = Field(default=0, ge=-120, le=120)
+    scrollAmount: int = Field(default=0, ge=-600, le=600)  # wheel pixels; 120 px = one notch (WHEEL_DELTA)
 
     @field_validator("keyCode")
     @classmethod

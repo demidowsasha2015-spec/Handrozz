@@ -44,7 +44,9 @@
         <!-- steps grid -->
         <DataGrid x:Name="StepsGrid" ItemsSource="{Binding Rows}" AutoGenerateColumns="False"
                   CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column"
-                  IsReadOnly="{Binding IsReadOnly}" SelectionMode="Single" GridLinesVisibility="All">
+                  IsReadOnly="{Binding IsReadOnly}" SelectionMode="Single" SelectionUnit="FullRow"
+                  AllowDrop="True" PreviewDragOver="StepsGrid_DragOver" Drop="StepsGrid_Drop"
+                  GridLinesVisibility="All">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
@@ -52,6 +54,7 @@
                             <Setter Property="Background" Value="#FFE7E4" />
                         </DataTrigger>
                     </Style.Triggers>
+                    <Setter Property="ToolTip" Value="Drag rows to reorder steps" />
                 </Style>
             </DataGrid.RowStyle>
             <DataGrid.Columns>

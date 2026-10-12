@@ -92,7 +92,8 @@ public partial class StepRow : ObservableObject
 
     public static StepRow From(MacroStep s)
     {
-        var notches = Math.Max(1, Math.Abs(s.ScrollAmount) / 120);
+        var notches = Math.Clamp(Math.Abs(s.ScrollAmount) / MacroLimits.ScrollWheelDelta,
+                                 1, MacroLimits.MaxScrollNotches);
         var row = new StepRow
         {
             DelayBeforeText = s.DelayBeforeMs.ToString(CultureInfo.InvariantCulture),
@@ -193,13 +194,13 @@ public partial class StepRow : ObservableObject
 
             case StepKind.MouseScroll:
                 var dir = ParseEnum<ScrollDirection>(ScrollDirection, ScrollNames, nameof(ScrollDirection));
-                if (Math.Abs(ScrollAmount) is < 1 or > 5)
-                    Throw("Scroll notches must be between 1 and 5.");
+                if (Math.Abs(ScrollAmount) is < 1 or > MacroLimits.MaxScrollNotches)
+                    Throw($"Scroll notches must be between 1 and {MacroLimits.MaxScrollNotches}.");
                 var notches = Math.Abs(ScrollAmount);
                 return new MacroStep
                 {
                     Kind = StepKind.MouseScroll, DelayBeforeMs = delay,
-                    Scroll = dir, ScrollAmount = (dir == ScrollDirection.Up ? 1 : -1) * notches * 120,
+                    Scroll = dir, ScrollAmount = (dir == ScrollDirection.Up ? 1 : -1) * notches * MacroLimits.ScrollWheelDelta,
                 };
 
             default:

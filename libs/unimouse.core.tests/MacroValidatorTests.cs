@@ -126,4 +126,39 @@ public class MacroValidatorTests
         var err = Assert.Single(MacroValidator.Validate(macro).Errors);
         Assert.Equal(1, err.StepIndex);
     }
+
+    [Theory]
+    // The step editor produces notches * ScrollWheelDelta (120 px); 5 notches = 600 is the cap.
+    [InlineData(600)]
+    [InlineData(-600)]
+    public void Accepts_Scroll_Up_To_Editor_Max(int amount)
+    {
+        var macro = Valid(new MacroStep
+        {
+            Kind = StepKind.MouseScroll, Scroll = ScrollDirection.Down, ScrollAmount = amount,
+        });
+        Assert.True(MacroValidator.Validate(macro).IsValid);
+    }
+
+    [Theory]
+    [InlineData(601)]
+    [InlineData(-720)]
+    public void Rejects_Scroll_Beyond_Editor_Max(int amount)
+    {
+        var macro = Valid(new MacroStep
+        {
+            Kind = StepKind.MouseScroll, Scroll = ScrollDirection.Up, ScrollAmount = amount,
+        });
+        Assert.Contains(MacroValidator.Validate(macro).Errors, e => e.Code == "step.scroll_range");
+    }
+
+    [Fact]
+    public void Scroll_Limits_Match_Editor_Units()
+    {
+        // Single source of truth: MaxScrollAmount must equal WHEEL_DELTA * max notches,
+        // exactly what StepEditorViewModel emits for its largest row.
+        Assert.Equal(120, MacroLimits.ScrollWheelDelta);
+        Assert.Equal(5, MacroLimits.MaxScrollNotches);
+        Assert.Equal(MacroLimits.ScrollWheelDelta * MacroLimits.MaxScrollNotches, MacroLimits.MaxScrollAmount);
+    }
 }

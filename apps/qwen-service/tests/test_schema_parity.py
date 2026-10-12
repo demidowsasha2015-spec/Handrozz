@@ -8,6 +8,7 @@ bounds so a drift in either direction fails CI loudly.
 from conftest import minimal_macro, schema, valid_macro_dict  # noqa: F401
 
 import pytest
+import jsonschema
 from pydantic import ValidationError
 
 from qwen_service.models import MacroDefinition
@@ -78,3 +79,32 @@ def test_control_character_policy():
     MacroStep.model_validate({"kind": "text", "text": "ok\tvalue\n"})  # tab/newline allowed
     with pytest.raises(ValidationError):
         MacroStep.model_validate({"kind": "text", "text": "bad\x00char"})
+
+
+def test_scroll_amount_bounds_match_between_schema_and_pydantic():
+    """The WPF step editor emits scrollAmount in wheel pixels (notches * 120,
+    max MacroLimits.MaxScrollNotches = 5 -> 600). Schema and Pydantic must
+    accept exactly the same range so a macro saved from the UI always passes
+    server-side validation (and vice versa)."""
+    s = schema()
+    step_def = s["$defs"]["step"]["properties"]["scrollAmount"]
+    assert (step_def["minimum"], step_def["maximum"]) == (-600, 600)
+
+    from qwen_service.models import MacroStep
+
+    field = MacroStep.model_fields["scrollAmount"]
+    ge = next(c for c in field.metadata if getattr(c, "ge", None) is not None)
+    le = next(c for c in field.metadata if getattr(c, "le", None) is not None)
+    assert (ge.ge, le.le) == (step_def["minimum"], step_def["maximum"])
+
+    # A 5-notch scroll as produced by the editor must validate on both sides.
+    notch_step = {"kind": "mouseScroll", "scroll": "down", "scrollAmount": -600}
+    MacroStep.model_validate(notch_step)  # pydantic ok
+    jsonschema.validate(notch_step, s["$defs"]["step"])  # schema ok
+
+    # And anything beyond the cap must be rejected by both.
+    too_far = {"kind": "mouseScroll", "scroll": "up", "scrollAmount": 720}
+    with pytest.raises(ValidationError):
+        MacroStep.model_validate(too_far)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(too_far, s["$defs"]["step"])

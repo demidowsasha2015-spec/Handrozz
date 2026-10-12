@@ -27,7 +27,14 @@ public static partial class MacroLimits
     public const int MaxDurationMs = 15 * 60_000;  // 15 minutes hard cap
     public const int MinClicks = 1;
     public const int MaxClicks = 5;
-    public const int MaxScrollAmount = 120;
+    /// <summary>
+    /// Max |scrollAmount| in Windows wheel notches (WHEEL_DELTA = 120 px/notch).
+    /// The step editor exposes this as "notches" (sign carries direction), so the
+    /// UI limit and this validator limit can never drift apart.
+    /// </summary>
+    public const int ScrollWheelDelta = 120;         // one notch, per Win32 WHEEL_DELTA
+    public const int MaxScrollNotches = 5;           // UI unit: 1..5 notches
+    public const int MaxScrollAmount = ScrollWheelDelta * MaxScrollNotches; // 600 px
     public const int MaxNameLength = 120;
     public const int MaxDescriptionLength = 2_000;
 

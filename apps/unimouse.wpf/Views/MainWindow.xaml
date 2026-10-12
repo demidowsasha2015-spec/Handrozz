@@ -41,8 +41,10 @@
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="4">
                     <Button Content="New" Command="{Binding NewBlankMacroCommand}" Padding="10,4" />
                     <Button Content="Reload" Command="{Binding ReloadLibraryCommand}" Padding="10,4" Margin="6,0" />
-                    <Button Content="Edit" Command="{Binding EditSelectedCommand}" Padding="10,4" Margin="6,0,0,0" />
-                    <Button Content="Delete" Command="{Binding DeleteSelectedCommand}" Padding="10,4" Margin="6,0,0,0" />
+                    <Button Content="Edit" Command="{Binding EditSelectedCommand}"
+                            IsEnabled="{Binding HasSelection}" Padding="10,4" Margin="6,0,0,0" />
+                    <Button Content="Delete" Command="{Binding DeleteSelectedCommand}"
+                            IsEnabled="{Binding HasSelection}" Padding="10,4" Margin="6,0,0,0" />
                 </StackPanel>
                 <ListBox ItemsSource="{Binding Macros}"
                          SelectedItem="{Binding SelectedMacro}"

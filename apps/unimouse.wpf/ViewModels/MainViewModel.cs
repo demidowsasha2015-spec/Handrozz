@@ -27,6 +27,26 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<MacroListItem> Macros { get; } = [];
 
     [ObservableProperty] private MacroListItem? _selectedMacro;
+
+    /// <summary>
+    /// Drives IsEnabled of the Edit/Delete buttons. CommunityToolkit only raises
+    /// CanExecuteChanged for commands annotated with NotifyCanExecuteChangedFor,
+    /// so we refresh them explicitly when the selection changes — otherwise the
+    /// buttons would stay greyed out after clicking a list row.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelection))]
+    private bool _hasLibrarySelection;
+
+    public bool HasSelection => SelectedMacro is not null;
+
+    partial void OnSelectedMacroChanged(MacroListItem? value)
+    {
+        HasLibrarySelection = value is not null;
+        EditSelectedCommand.NotifyCanExecuteChanged();
+        DeleteSelectedCommand.NotifyCanExecuteChanged();
+    }
+
     [ObservableProperty] private string _aiPrompt = string.Empty;
     [ObservableProperty] private string _statusText = "Ready.";
     [ObservableProperty]
