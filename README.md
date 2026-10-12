@@ -149,10 +149,10 @@ apps/qwen-service/           # FastAPI + Qwen clients + pytest suite
 
 - [ ] Step editor grid in WPF (inline edit of coordinates/delays, drag-reorder)
 - [ ] Macro recorder (capture real user input into steps, with explicit "recording" UX)
-- [ ] Per-monitor DPI coordinate normalization helper
+- [x] Per-monitor DPI coordinate normalization helper (`libs/unimouse.core/Runtime/CoordinateSpace.cs` + xUnit tests)
 - [ ] Import/export dialog + signed macro sharing (read-only previews)
 - [ ] OpenAI-compatible backend option (vLLM) behind the same `LlmBackend` interface
-- [ ] Tray icon + per-macro start hotkeys (RegisterHotKey, already modeled in schema)
+- [x] Per-macro start hotkeys via RegisterHotKey (`Services/HotkeyManager.cs`, wired into MainWindow + `MainViewModel.PlayById`) — tray icon still TODO
 - [x] CI: GitHub Actions (`.github/workflows/ci.yml`: pytest on ubuntu, dotnet build+test on windows-latest, schema sanity) — added
 
 ## Security notes

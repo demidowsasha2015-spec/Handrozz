@@ -140,9 +140,25 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private bool CanPlay() => !IsPlaying && SelectedMacro is not null;
 
     [RelayCommand(CanExecute = nameof(CanPlay))]
-    private async Task PlayMacroAsync()
+    private Task PlayMacroAsync() => PlayAsync(SelectedMacro);
+
+    /// <summary>Entry point for per-macro start hotkeys (HotkeyManager).</summary>
+    public void PlayById(string id)
     {
-        if (SelectedMacro is null || !_runner.TryStart())
+        var item = Macros.FirstOrDefault(m => m.Id == id);
+        if (item is null)
+        {
+            StatusText = $"No macro registered for hotkey target '{id}'.";
+            return;
+        }
+        SelectedMacro = item;
+        // Fire-and-forget on the UI thread; playback itself runs on pool.
+        _ = PlayAsync(item);
+    }
+
+    private async Task PlayAsync(MacroListItem? selected)
+    {
+        if (selected is null || IsPlaying || !_runner.TryStart())
         {
             StatusText = "A macro is already running.";
             return;
@@ -150,7 +166,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         // Pre-flight local validation — the runner validates again, but this
         // gives instant feedback without touching input devices.
-        var validation = MacroValidator.Validate(SelectedMacro.Definition);
+        var validation = MacroValidator.Validate(selected.Definition);
         if (!validation.IsValid)
         {
             _runner.Stop();
@@ -160,7 +176,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
 
         IsPlaying = true;
-        TotalSteps = SelectedMacro.Definition.Steps.Count;
+        TotalSteps = selected.Definition.Steps.Count;
         _playbackCts = new CancellationTokenSource();
 
         // Marshal progress events back to this VM (UI binds directly).
@@ -182,7 +198,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         try
         {
-            await _runner.RunAsync(SelectedMacro.Definition, _playbackCts.Token);
+            await _runner.RunAsync(selected.Definition, _playbackCts.Token);
         }
         finally
         {
@@ -217,5 +233,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
 /// <summary>Row in the macro library list.</summary>
 public sealed record MacroListItem(string FileName, MacroDefinition Definition)
 {
+    public string Id => string.IsNullOrWhiteSpace(Definition.Id) ? FileName : Definition.Id;
     public string DisplayName => $"{Definition.Name}  ({Definition.Steps.Count} steps)";
 }

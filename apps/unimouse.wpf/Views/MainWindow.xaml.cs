@@ -9,6 +9,7 @@ public partial class MainWindow : Window
 {
     private const int WmHotkey = 0x0312;
     private readonly EmergencyStopHotkey? _stopHotkey;
+    private HotkeyManager? _macroHotkeys;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -26,7 +27,18 @@ public partial class MainWindow : Window
             }
             _stopHotkey.Triggered += viewModel.EmergencyStop;
 
-            // Route WM_HOTKEY messages to the hotkey object.
+            // Per-macro START hotkeys (documented RegisterHotKey only).
+            _macroHotkeys = new HotkeyManager(hwnd);
+            foreach (var m in viewModel.Macros)
+            {
+                if (m.Definition.StartHotkey is { } hk)
+                {
+                    var captured = m;
+                    _macroHotkeys.TryRegister(hk.KeyCode, hk.Modifiers, () => viewModel.PlayById(captured.Id));
+                }
+            }
+
+            // Route WM_HOTKEY messages to the hotkey objects.
             HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
         };
 
@@ -38,6 +50,7 @@ public partial class MainWindow : Window
                 src?.RemoveHook(WndProc);
                 _stopHotkey.Dispose();
             }
+            _macroHotkeys?.Dispose();
             viewModel.Dispose();
         };
     }
@@ -45,7 +58,10 @@ public partial class MainWindow : Window
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (msg == WmHotkey)
+        {
             _stopHotkey?.NotifyHotkey(wParam.ToInt32());
+            _macroHotkeys?.NotifyHotkey(wParam.ToInt32());
+        }
         return IntPtr.Zero;
     }
 }
