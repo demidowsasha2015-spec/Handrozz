@@ -15,6 +15,7 @@ public sealed record ValidationResult(bool IsValid, IReadOnlyList<ValidationErro
 /// <summary>
 /// Hard safety + sanity limits. These are the product's guardrails:
 /// macros that fail validation can never reach the input executor.
+/// Single source of truth for limits (validator, step editor, recorder).
 /// </summary>
 public static partial class MacroLimits
 {
