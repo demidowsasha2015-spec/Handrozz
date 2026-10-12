@@ -1,13 +1,14 @@
 """Tests for the OpenAI-compatible backend (vLLM / llama.cpp / LM Studio).
 
-No network: we inject an httpx.MockTransport by monkeypatching
-httpx.AsyncClient construction inside the module.
+No network: handlers run through httpx.MockTransport, but instead of
+monkeypatching the global httpx.AsyncClient class (which leaks across test
+files when teardown order interleaves), each test builds its own client and
+injects it via the ``client_factory`` seam on OpenAICompatBackend.
 """
 
 from __future__ import annotations
 
 import json
-import os
 
 import httpx
 import pytest
@@ -17,26 +18,22 @@ from qwen_service import qwen_client
 from qwen_service.qwen_client import LlmBackend, OpenAICompatBackend, make_backend
 
 
-def _install_mock(handler):
-    """Force httpx.AsyncClient in qwen_client to use a MockTransport while
-    KEEPING the real base_url/headers (a transport-only patch)."""
-    real_cls = httpx.AsyncClient
+def _factory(handler):
+    """A client_factory whose base_url/headers are ignored; the handler
+    always answers through an in-memory MockTransport."""
 
-    def factory(*args, **kwargs):
-        kwargs["transport"] = httpx.MockTransport(handler)
-        return real_cls(*args, **kwargs)
+    def factory(base_url, headers, timeout):
+        return httpx.AsyncClient(
+            transport=httpx.MockTransport(handler),
+            base_url="http://testserver",
+            headers=headers,
+            timeout=timeout,
+        )
 
-    qwen_client.httpx.AsyncClient = factory  # type: ignore[attr-defined]
-    return real_cls
-
-
-@pytest.fixture()
-def restore_client():
-    yield
-    qwen_client.httpx.AsyncClient = httpx.AsyncClient  # type: ignore[attr-defined]
+    return factory
 
 
-async def test_complete_macro_posts_chat_completions(restore_client):
+async def test_complete_macro_posts_chat_completions():
     seen: dict = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -52,8 +49,9 @@ async def test_complete_macro_posts_chat_completions(restore_client):
             },
         )
 
-    _install_mock(handler)
-    be = OpenAICompatBackend(base_url="http://127.0.0.1:8000/v1/", api_key="secret")
+    be = OpenAICompatBackend(
+        base_url="http://127.0.0.1:8000/v1/", api_key="secret", client_factory=_factory(handler)
+    )
     out = await be.complete_macro("type hello", "", 1920, 1080)
 
     assert out == '{"rejected": false}'
@@ -68,22 +66,20 @@ async def test_complete_macro_posts_chat_completions(restore_client):
     assert "Screen: 1920x1080" in body["messages"][1]["content"]
 
 
-async def test_missing_choices_raises(restore_client):
+async def test_missing_choices_raises():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"choices": []})
 
-    _install_mock(handler)
-    be = OpenAICompatBackend(base_url="http://127.0.0.1:8000/v1")
+    be = OpenAICompatBackend(base_url="http://127.0.0.1:8000/v1", client_factory=_factory(handler))
     with pytest.raises(RuntimeError, match="no choices"):
         await be.complete_macro("x", "", 800, 600)
 
 
-async def test_http_error_propagates(restore_client):
+async def test_http_error_propagates():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(503, text="busy")
 
-    _install_mock(handler)
-    be = OpenAICompatBackend(base_url="http://127.0.0.1:8000/v1")
+    be = OpenAICompatBackend(base_url="http://127.0.0.1:8000/v1", client_factory=_factory(handler))
     with pytest.raises(httpx.HTTPStatusError):
         await be.complete_macro("x", "", 800, 600)
 
@@ -109,7 +105,7 @@ def test_env_defaults(monkeypatch):
     assert be.api_key is None
 
 
-async def test_end_to_end_through_api(monkeypatch, restore_client):
+async def test_end_to_end_through_api(monkeypatch):
     """Full pipeline: policy gate -> fake vLLM -> schema validation -> macro."""
     reply = json.dumps(
         {
@@ -127,8 +123,14 @@ async def test_end_to_end_through_api(monkeypatch, restore_client):
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"choices": [{"message": {"content": reply}}]})
 
-    _install_mock(handler)
     monkeypatch.setenv("QWEN_BACKEND", "openai")
+    # Route make_backend() to an OpenAICompatBackend wired to the mock transport.
+    Real = qwen_client.OpenAICompatBackend
+
+    def _fake(*a, **kw):
+        return Real(base_url="http://vllm.test/v1", client_factory=_factory(handler))
+
+    monkeypatch.setattr(qwen_client, "OpenAICompatBackend", _fake)
 
     from fastapi.testclient import TestClient
     from qwen_service.main import create_app
@@ -144,15 +146,31 @@ async def test_end_to_end_through_api(monkeypatch, restore_client):
     assert data["rejected"] is False
     assert data["macro"]["steps"][0]["text"] == "hello"
 
-    # And a banned intent never reaches the model at all.
+    # And a banned intent never reaches the model at all.  The backend is
+    # still wired to the mock transport above; a spy handler counts calls.
     calls = []
 
     def spy(request: httpx.Request) -> httpx.Response:
         calls.append(request)
         return handler(request)
 
-    _install_mock(spy)
-    r2 = client.post(
+    def _spy_factory(base_url, headers, timeout):
+        return httpx.AsyncClient(
+            transport=httpx.MockTransport(spy),
+            base_url="http://testserver",
+            headers=headers,
+            timeout=timeout,
+        )
+
+    Real2 = qwen_client.OpenAICompatBackend
+
+    def _fake_spy(*a, **kw):
+        return Real2(base_url="http://vllm.test/v1", client_factory=_spy_factory)
+
+    monkeypatch.setattr(qwen_client, "OpenAICompatBackend", _fake_spy)
+    app2 = create_app()
+    client2 = TestClient(app2)
+    r2 = client2.post(
         "/macro/generate",
         json={"prompt": "aimbot that bypasses VAC anti-cheat", "screen_width": 1920, "screen_height": 1080},
     )

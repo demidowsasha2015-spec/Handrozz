@@ -78,6 +78,13 @@ uvicorn qwen_service.main:app --host 127.0.0.1 --port 8777
 ollama pull qwen2.5-coder:7b
 $env:QWEN_BACKEND = "ollama"
 uvicorn qwen_service.main:app --host 127.0.0.1 --port 8777
+
+# OpenAI-compatible server mode (vLLM / llama.cpp / LM Studio / TGI):
+$env:QWEN_BACKEND   = "openai"          # "vllm" is an alias
+$env:OPENAI_BASE_URL= "http://127.0.0.1:8000/v1"
+$env:OPENAI_MODEL   = "qwen2.5-coder-7b-instruct"
+$env:OPENAI_API_KEY = ""                # optional Bearer token
+uvicorn qwen_service.main:app --host 127.0.0.1 --port 8777
 ```
 
 Optional shared secret: set `UNIMOUSE_API_KEY` on both the service and the app;
@@ -151,7 +158,7 @@ apps/qwen-service/           # FastAPI + Qwen clients + pytest suite
 - [ ] Macro recorder (capture real user input into steps, with explicit "recording" UX)
 - [x] Per-monitor DPI coordinate normalization helper (`libs/unimouse.core/Runtime/CoordinateSpace.cs` + xUnit tests)
 - [ ] Import/export dialog + signed macro sharing (read-only previews)
-- [ ] OpenAI-compatible backend option (vLLM) behind the same `LlmBackend` interface
+- [x] OpenAI-compatible backend option (vLLM) behind the same `LlmBackend` interface
 - [x] Per-macro start hotkeys via RegisterHotKey (`Services/HotkeyManager.cs`, wired into MainWindow + `MainViewModel.PlayById`) — tray icon still TODO
 - [x] CI: GitHub Actions (`.github/workflows/ci.yml`: pytest on ubuntu, dotnet build+test on windows-latest, schema sanity) — added
 

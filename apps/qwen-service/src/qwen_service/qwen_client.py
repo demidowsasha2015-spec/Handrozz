@@ -170,11 +170,21 @@ class OpenAICompatBackend(LlmBackend):
         model: str | None = None,
         api_key: str | None = None,
         timeout_s: float = 120,
+        client_factory=None,
     ):
         self.base_url = (base_url or os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:8000/v1")).rstrip("/")
         self.model = model or os.environ.get("OPENAI_MODEL") or os.environ.get("QWEN_MODEL", "qwen2.5-coder-7b-instruct")
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY") or None
         self.timeout = timeout_s
+        # Test seam: lets tests inject an httpx.AsyncClient with a
+        # MockTransport without patching the global class (which leaks
+        # across test files). Signature: (base_url, headers, timeout) -> AsyncClient
+        self._client_factory = client_factory
+
+    def _make_client(self, headers: dict) -> httpx.AsyncClient:
+        if self._client_factory is not None:
+            return self._client_factory(self.base_url, headers, self.timeout)
+        return httpx.AsyncClient(base_url=self.base_url, headers=headers, timeout=self.timeout)
 
     async def complete_macro(self, prompt: str, context: str, width: int, height: int) -> str:
         user = (
@@ -196,7 +206,7 @@ class OpenAICompatBackend(LlmBackend):
             "max_tokens": 4096,
             "stream": False,
         }
-        async with httpx.AsyncClient(base_url=self.base_url, headers=headers, timeout=self.timeout) as client:
+        async with self._make_client(headers) as client:
             r = await client.post("/chat/completions", json=body)
             r.raise_for_status()
             data = r.json()
