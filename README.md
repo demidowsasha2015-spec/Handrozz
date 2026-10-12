@@ -153,7 +153,7 @@ apps/qwen-service/           # FastAPI + Qwen clients + pytest suite
 - [ ] Import/export dialog + signed macro sharing (read-only previews)
 - [ ] OpenAI-compatible backend option (vLLM) behind the same `LlmBackend` interface
 - [ ] Tray icon + per-macro start hotkeys (RegisterHotKey, already modeled in schema)
-- [ ] CI: GitHub Actions (dotnet test + pytest + schema-parity job on ubuntu/windows)
+- [x] CI: GitHub Actions (`.github/workflows/ci.yml`: pytest on ubuntu, dotnet build+test on windows-latest, schema sanity) — added
 
 ## Security notes
 
