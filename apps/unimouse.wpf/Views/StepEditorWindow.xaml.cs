@@ -14,8 +14,8 @@ namespace UniMouse.Wpf.Views;
 /// </summary>
 public partial class StepEditorWindow : Window
 {
-    /// <summary>Raised after a successful save so the library list can refresh.</summary>
-    public event Action? Saved;
+    /// <summary>Raised after a successful save, with the real file name persisted.</summary>
+    public event Action<string>? Saved;
 
     private readonly MacroStore _store;
 
@@ -26,7 +26,7 @@ public partial class StepEditorWindow : Window
         DataContext = vm;
         _store = store;
         Owner = Application.Current.MainWindow;
-        vm.SavedOnce += () => Saved?.Invoke();
+        vm.SavedOnce += fileName => Saved?.Invoke(fileName);
     }
 
     private void AddKey_Click(object s, RoutedEventArgs e)    => Vm.AddStep(StepKind.Key);
@@ -55,11 +55,16 @@ public partial class StepEditorWindow : Window
     {
         // Commit any cell still in edit mode before converting rows.
         StepsGrid.CommitEdit(DataGridEditingUnit.Row, exitEditingMode: true);
-        Vm.TrySave((macro, file) =>
+        Vm.TrySave((macro, file, reportActualName) =>
         {
             try
             {
-                _store.Save(macro, file);
+                // Drafts (e.g. recorder review-before-save) are not backed by a
+                // library file yet. Pass fileName = null so the store derives a
+                // fresh, sanitized name from the macro id and CREATES a new file
+                // instead of overwriting an existing macro with the same name.
+                var actual = _store.Save(macro, Vm.IsNew ? null : file);
+                reportActualName(actual);
                 return true;
             }
             catch (Exception)

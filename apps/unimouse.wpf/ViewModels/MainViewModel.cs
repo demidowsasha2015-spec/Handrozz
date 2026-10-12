@@ -109,12 +109,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Called by MainWindow after a successful save from the step editor.</summary>
-    public void NotifyMacroSaved(string fileName)
+    /// <param name="savedFileName">Real file name the macro was persisted under
+    /// (the editor reports this back; for drafts it is store-derived, not the placeholder).</param>
+    public void NotifyMacroSaved(string savedFileName)
     {
         ReloadLibrary();
-        var again = Macros.FirstOrDefault(m => m.FileName == fileName);
+        var again = Macros.FirstOrDefault(m => m.FileName == savedFileName);
         if (again is not null) SelectedMacro = again;
-        StatusText = $"Macro '{fileName}' updated and re-validated.";
+        StatusText = $"Macro '{savedFileName}' updated and re-validated.";
     }
 
     [RelayCommand]
@@ -165,7 +167,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     Author = Environment.UserName,
                     Steps = steps,
                 };
-                EditRequested?.Invoke(new MacroListItem($"{draft.Id}.unimacro.json", draft));
+                // IsDraft=true: the editor will CREATE a new library file on
+                // save instead of trying to overwrite a macro that does not exist yet.
+                EditRequested?.Invoke(new MacroListItem($"{draft.Id}.unimacro.json", draft, IsDraft: true));
                 StatusText = $"Recorded {steps.Count} step(s) — review in the editor before saving.";
             }
 
@@ -324,8 +328,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 }
 
-/// <summary>Row in the macro library list.</summary>
-public sealed record MacroListItem(string FileName, MacroDefinition Definition)
+/// <summary>Row in the macro library list (or an unsaved draft, e.g. from the recorder).</summary>
+/// <param name="IsDraft">True when this item is NOT backed by a file in the library yet.
+/// The editor then creates a new file on save instead of overwriting an existing macro.</param>
+public sealed record MacroListItem(string FileName, MacroDefinition Definition, bool IsDraft = false)
 {
     public string Id => string.IsNullOrWhiteSpace(Definition.Id) ? FileName : Definition.Id;
     public string DisplayName => $"{Definition.Name}  ({Definition.Steps.Count} steps)";

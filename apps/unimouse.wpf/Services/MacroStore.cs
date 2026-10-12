@@ -58,7 +58,8 @@ public sealed class MacroStore
         return JsonSerializer.Deserialize<MacroDefinition>(json, StepJsonOpts);
     }
 
-    public void Save(MacroDefinition macro, string? fileName = null)
+    /// <summary>Persists the macro atomically. Returns the real file name written.</summary>
+    public string Save(MacroDefinition macro, string? fileName = null)
     {
         var name = fileName ?? SanitizeFileName(macro.Id);
         var path = ResolveSafe(name);
@@ -67,6 +68,7 @@ public sealed class MacroStore
         var tmp = path + ".tmp";
         File.WriteAllText(tmp, json);
         File.Move(tmp, path, overwrite: true);
+        return Path.GetFileName(path);
     }
 
     public void Delete(string fileName)

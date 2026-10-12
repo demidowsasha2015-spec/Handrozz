@@ -100,7 +100,7 @@ public class StepEditorViewModelTests
         vm.MoveTo(0, 2);
 
         MacroDefinition? saved = null;
-        var ok = vm.TrySave((macro, _) => { saved = macro; return true; });
+        var ok = vm.TrySave((macro, _, report) => { saved = macro; report("x.unimacro.json"); return true; });
 
         Assert.True(ok);
         Assert.NotNull(saved);
@@ -110,10 +110,25 @@ public class StepEditorViewModelTests
     }
 
     [Fact]
+    public void TrySave_Reports_Actual_File_Name_For_Drafts()
+    {
+        // Draft flow: the store derives its own file name (Vm passes a placeholder).
+        // SavedOnce must carry the REAL name so the library can select the new row.
+        var vm = VmWithDelays(10);
+        string? reported = null;
+        vm.SavedOnce += name => reported = name;
+
+        var ok = vm.TrySave((_, _, report) => { report("recorded-20261012-153000.unimacro.json"); return true; });
+
+        Assert.True(ok);
+        Assert.Equal("recorded-20261012-153000.unimacro.json", reported);
+    }
+
+    [Fact]
     public void TrySave_Fails_When_SaveAction_Refuses()
     {
         var vm = VmWithDelays(10);
-        var ok = vm.TrySave((_, _) => false);
+        var ok = vm.TrySave((_, _, _) => false);
         Assert.False(ok);
         Assert.Contains("refused", vm.SaveResult, StringComparison.OrdinalIgnoreCase);
     }

@@ -244,6 +244,11 @@ public partial class StepRow : ObservableObject
 public partial class StepEditorViewModel : ObservableObject
 {
     public string SourceFileName { get; }
+
+    /// <summary>True for drafts not yet in the library (e.g. recorder review-before-save):
+    /// saving creates a new file instead of overwriting an existing macro.</summary>
+    public bool IsNew { get; }
+
     public ObservableCollection<StepRow> Rows { get; } = [];
 
     [ObservableProperty]
@@ -288,8 +293,9 @@ public partial class StepEditorViewModel : ObservableObject
             Rows.Add(StepRow.CreateDefault(StepKind.Delay));
     }
 
-    /// <summary>Raised once after a successful save (window forwards to the library).</summary>
-    public event Action? SavedOnce;
+    /// <summary>Raised once after a successful save, with the REAL file name the
+    /// macro was persisted under (for drafts this is store-derived, not the placeholder).</summary>
+    public event Action<string>? SavedOnce;
 
     /// <summary>True when rows differ from the last saved/persisted definition.</summary>
     public bool IsDirty { get; private set; }
@@ -384,7 +390,9 @@ public partial class StepEditorViewModel : ObservableObject
     }
 
     /// <summary>Persist through the store after full validation. Returns false + reason on failure.</summary>
-    public bool TrySave(Func<MacroDefinition, string, bool> saveAction)
+    /// <param name="saveAction">(macro, requestedFileName, reportActualName) — the callback
+    /// must invoke <c>reportActualName</c> with the file it really wrote to.</param>
+    public bool TrySave(Func<MacroDefinition, string, Action<string>, bool> saveAction)
     {
         if (IsReadOnly)
         {
@@ -401,7 +409,11 @@ public partial class StepEditorViewModel : ObservableObject
                                  e.StepIndex is int i ? $"step {i + 1}: {e.Message}" : e.Message));
                 return false;
             }
-            if (!saveAction(updated, SourceFileName))
+
+            // Capture the real file name the store persisted to (drafts get a
+            // store-derived name instead of the editor's placeholder).
+            string? saveFileName = null;
+            if (!saveAction(updated, SourceFileName, name => saveFileName = name))
             {
                 SaveResult = "Save was refused by the store.";
                 return false;
@@ -410,7 +422,9 @@ public partial class StepEditorViewModel : ObservableObject
             SaveResult = $"Saved {Rows.Count} step(s).";
             IsDirty = false;
             OnPropertyChanged(nameof(IsDirty));
-            SavedOnce?.Invoke();
+            // Report the file the save actually landed in: drafts are persisted
+            // under a store-derived name, not the editor's placeholder.
+            SavedOnce?.Invoke(saveFileName ?? SourceFileName);
             return true;
         }
         catch (InvalidDataException ex)

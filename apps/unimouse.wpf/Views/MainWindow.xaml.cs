@@ -77,7 +77,9 @@ public partial class MainWindow : Window
             : new StepEditorViewModel(item.Definition, item.FileName);
 
         var win = new StepEditorWindow(editorVm, _store) { Owner = this };
-        win.Saved += () => vm.NotifyMacroSaved(item.FileName);
+        // The editor reports the file it actually wrote to — for drafts that is
+        // a store-derived name, not the placeholder we passed in.
+        win.Saved += savedFileName => vm.NotifyMacroSaved(savedFileName);
         win.ShowDialog();
     }
 
