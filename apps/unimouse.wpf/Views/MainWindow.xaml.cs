@@ -10,11 +10,14 @@ public partial class MainWindow : Window
     private const int WmHotkey = 0x0312;
     private readonly EmergencyStopHotkey? _stopHotkey;
     private HotkeyManager? _macroHotkeys;
+    private readonly MacroStore _store;
 
-    public MainWindow(MainViewModel viewModel)
+    public MainWindow(MainViewModel viewModel, MacroStore store)
     {
         DataContext = viewModel;
+        _store = store;
         InitializeComponent();
+        viewModel.EditRequested += OpenEditor;
 
         Loaded += (_, _) =>
         {
@@ -53,6 +56,21 @@ public partial class MainWindow : Window
             _macroHotkeys?.Dispose();
             viewModel.Dispose();
         };
+    }
+
+    private void MacroList_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && vm.SelectedMacro is { } m)
+            vm.EditSelectedCommand.Execute(null);
+    }
+
+    private void OpenEditor(MacroListItem item)
+    {
+        var vm = (MainViewModel)DataContext;
+        var editorVm = new StepEditorViewModel(item.Definition, item.FileName);
+        var win = new StepEditorWindow(editorVm, _store) { Owner = this };
+        win.Saved += () => vm.NotifyMacroSaved(item.FileName);
+        win.ShowDialog();
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

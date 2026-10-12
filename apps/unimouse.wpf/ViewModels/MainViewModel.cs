@@ -16,6 +16,9 @@ namespace UniMouse.Wpf.ViewModels;
 /// </summary>
 public partial class MainViewModel : ObservableObject, IDisposable
 {
+    /// <summary>Raised when the user asks to edit a macro; MainWindow opens StepEditorWindow.</summary>
+    public event Action<MacroListItem>? EditRequested;
+
     private readonly MacroStore _store;
     private readonly QwenApiClient _api;
     private readonly MacroRunner _runner;
@@ -68,6 +71,22 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (SelectedMacro is null) return;
         _store.Delete(SelectedMacro.FileName);
         ReloadLibrary();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanActOnSelection))]
+    private void EditSelected()
+    {
+        if (SelectedMacro is not null)
+            EditRequested?.Invoke(SelectedMacro);
+    }
+
+    /// <summary>Called by MainWindow after a successful save from the step editor.</summary>
+    public void NotifyMacroSaved(string fileName)
+    {
+        ReloadLibrary();
+        var again = Macros.FirstOrDefault(m => m.FileName == fileName);
+        if (again is not null) SelectedMacro = again;
+        StatusText = $"Macro '{fileName}' updated and re-validated.";
     }
 
     [RelayCommand]
