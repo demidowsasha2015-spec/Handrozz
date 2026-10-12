@@ -333,6 +333,19 @@ public partial class StepEditorViewModel : ObservableObject
         MarkDirty();
     }
 
+    /// <summary>Reorder a row to an arbitrary position (drag &amp; drop entry point).</summary>
+    public void MoveTo(int from, int to)
+    {
+        if (IsReadOnly) return;
+        if (from < 0 || from >= Rows.Count) return;
+        if (Rows.Count == 0) return;
+        to = Math.Clamp(to, 0, Rows.Count - 1);
+        if (from == to) return;
+        Rows.Move(from, to);
+        SaveResult = null;
+        MarkDirty();
+    }
+
     /// <summary>
     /// Builds a new immutable definition from the current rows. Throws
     /// InvalidDataException with the first problematic step's message.

@@ -45,7 +45,9 @@
         <DataGrid x:Name="StepsGrid" ItemsSource="{Binding Rows}" AutoGenerateColumns="False"
                   CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column"
                   IsReadOnly="{Binding IsReadOnly}" SelectionMode="Single" SelectionUnit="FullRow"
-                  AllowDrop="True" PreviewDragOver="StepsGrid_DragOver" Drop="StepsGrid_Drop"
+                  AllowDrop="True" PreviewMouseLeftButtonDown="StepsGrid_PreviewMouseLeftButtonDown"
+                  PreviewMouseMove="StepsGrid_PreviewMouseMove"
+                  PreviewDragOver="StepsGrid_DragOver" Drop="StepsGrid_Drop"
                   GridLinesVisibility="All">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">

@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using UniMouse.Core.Model;
 using UniMouse.Wpf.Services;
 using UniMouse.Wpf.ViewModels;
@@ -68,6 +70,84 @@ public partial class StepEditorWindow : Window
     }
 
     private void Close_Click(object s, RoutedEventArgs e) => Close();
+
+    // -----------------------------------------------------------------
+    // Drag & drop row reordering.
+    //
+    // WPF gotcha: DataGridCell captures the mouse on left-button down, so a
+    // plain Mouse.Move += DoDragDrop never fires. The standard workaround is
+    // to handle PreviewMouseLeftButtonDown (tunneling, runs before the cell
+    // capture), remember the pressed row, and start the drag from
+    // PreviewMouseMove once the pointer travels beyond SystemParameters
+    // drag thresholds. Editing a cell still works: we only claim the mouse
+    // when the press lands on a non-editing row and the user actually drags.
+    // -----------------------------------------------------------------
+
+    private Point _dragStart;
+    private int _dragSourceIndex = -1;
+
+    private void StepsGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _dragSourceIndex = -1;
+        if (Vm.IsReadOnly) return;
+
+        // Commit an in-flight cell edit instead of starting a drag over it.
+        var cell = FindAncestor<DataGridCell>(e.OriginalSource as DependencyObject);
+        if (cell is { IsEditing: true }) return;
+
+        var row = FindAncestor<DataGridRow>(e.OriginalSource as DependencyObject);
+        if (row?.Item is not null)
+        {
+            _dragStart = e.GetPosition(null);
+            _dragSourceIndex = row.GetIndex();
+        }
+    }
+
+    private void StepsGrid_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_dragSourceIndex < 0 || e.LeftButton != MouseButtonState.Pressed) return;
+
+        var delta = e.GetPosition(null) - _dragStart;
+        if (Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance)
+            return;
+
+        var source = _dragSourceIndex;
+        _dragSourceIndex = -1; // single-shot: avoid restarting after a failed drop
+
+        // Snapshot the data object; the live collection may change mid-drag.
+        DragDrop.DoDragDrop(StepsGrid, new DataObject(typeof(int), source), DragDropEffects.Move);
+    }
+
+    private void StepsGrid_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(typeof(int)) && !Vm.IsReadOnly
+            ? DragDropEffects.Move
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void StepsGrid_Drop(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(typeof(int))) return;
+        var from = (int)e.Data.GetData(typeof(int));
+
+        // Resolve the target row under the drop point; dropping below all rows
+        // appends at the end.
+        var row = FindAncestor<DataGridRow>(e.OriginalSource as DependencyObject);
+        var to = row is not null ? row.GetIndex() : Vm.Rows.Count - 1;
+
+        Vm.MoveTo(from, to);
+        StepsGrid.SelectedIndex = to;
+        e.Handled = true;
+    }
+
+    private static T? FindAncestor<T>(DependencyObject? current) where T : DependencyObject
+    {
+        while (current is not null and not T)
+            current = VisualTreeHelper.GetParent(current);
+        return current as T;
+    }
 
     private StepEditorViewModel Vm => (StepEditorViewModel)DataContext;
 }
