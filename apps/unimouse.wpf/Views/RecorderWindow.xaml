@@ -1,0 +1,35 @@
+<Window x:Class="UniMouse.Wpf.Views.RecorderWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Record macro" Height="300" Width="460"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    <!--
+        Safety posture: low-level input hooks are installed ONLY while this
+        dialog is open with recording active, and are removed on Stop/Close.
+        Recorded steps never save silently — they open in the step editor for
+        mandatory review first (see MainViewModel.StartRecording).
+    -->
+    <DockPanel Margin="12">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Macro name:" VerticalAlignment="Center" Width="80" />
+            <TextBox Width="320" Text="{Binding MacroName, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+
+        <Border DockPanel.Dock="Top" Background="#F4F4F4" Padding="8" Margin="0,0,0,8">
+            <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
+        </Border>
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,8">
+            <TextBlock VerticalAlignment="Center">
+                <Run Text="Steps captured: " /><Run Text="{Binding StepCount, Mode=OneWay}" FontWeight="Bold" />
+            </TextBlock>
+        </StackPanel>
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="●  Start recording" Command="{Binding StartCommand}" Padding="10,5" />
+            <Button Content="■  Stop" Command="{Binding StopCommand}" Padding="10,5" Margin="8,0" IsDefault="True" />
+            <Button Content="Close" Click="Close_Click" Padding="10,5" IsCancel="True" />
+        </StackPanel>
+    </DockPanel>
+</Window>

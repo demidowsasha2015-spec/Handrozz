@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  python:
+    name: qwen-service (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/qwen-service/pyproject.toml
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "apps/qwen-service[test]"
+      - name: Run tests
+        run: pytest apps/qwen-service/tests -q
+
+  dotnet:
+    name: unimouse (.NET build + tests)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Restore
+        run: dotnet restore UniMouseMacroAI.sln
+      - name: Build
+        run: dotnet build UniMouseMacroAI.sln -c Release --no-restore
+      - name: Test
+        run: dotnet test libs/unimouse.core.tests/UniMouse.Core.Tests.csproj -c Release --no-build
+
+  schema-parity:
+    name: shared schema sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate JSON parses and required keys exist
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          s = json.loads(pathlib.Path("shared/schemas/macro.schema.json").read_text())
+          assert "properties" in s and "steps" in s["properties"], "schema drift"
+          print("macro.schema.json OK")
+          PY

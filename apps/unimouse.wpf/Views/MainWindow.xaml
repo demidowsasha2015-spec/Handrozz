@@ -1,0 +1,100 @@
+<Window x:Class="UniMouse.Wpf.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="UniMouse Macro AI" Height="640" Width="980"
+        WindowStartupLocation="CenterScreen">
+    <DockPanel Margin="12">
+
+        <!-- status bar -->
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" />
+            </StatusBarItem>
+            <Separator />
+            <StatusBarItem HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="10" Height="10" Margin="0,0,6,0">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="Gray" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ServiceOnline}" Value="True">
+                                        <Setter Property="Fill" Value="LimeGreen" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock Text="Qwen service" />
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
+
+        <!-- progress -->
+        <ProgressBar DockPanel.Dock="Bottom" Height="6" Margin="0,8,0,4"
+                     Minimum="0" Maximum="1"
+                     Value="{Binding Progress, Mode=OneWay}" />
+
+        <!-- left column: library -->
+        <GroupBox DockPanel.Dock="Left" Header="Macro library" Width="320" Margin="0,0,12,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="4">
+                    <Button Content="New" Command="{Binding NewBlankMacroCommand}" Padding="10,4" />
+                    <Button Content="Record" Command="{Binding StartRecordingCommand}" Padding="10,4" Margin="6,0,0,0"
+                            ToolTip="Open the recorder dialog (hooks active only while it is open)" />
+                    <Button Content="Reload" Command="{Binding ReloadLibraryCommand}" Padding="10,4" Margin="6,0" />
+                    <Button Content="Edit" Command="{Binding EditSelectedCommand}"
+                            IsEnabled="{Binding HasSelection}" Padding="10,4" Margin="6,0,0,0" />
+                    <Button Content="Delete" Command="{Binding DeleteSelectedCommand}"
+                            IsEnabled="{Binding HasSelection}" Padding="10,4" Margin="6,0,0,0" />
+                </StackPanel>
+                <ListBox ItemsSource="{Binding Macros}"
+                         SelectedItem="{Binding SelectedMacro}"
+                         MouseDoubleClick="MacroList_DoubleClick">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding DisplayName}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </GroupBox>
+
+        <!-- right column: AI + playback -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <GroupBox Grid.Row="0" Header="Generate macro with AI (local Qwen2.5-Coder)" Margin="0,0,0,8">
+                <DockPanel Margin="4">
+                    <Button DockPanel.Dock="Right" Content="Generate"
+                            Command="{Binding GenerateWithAiCommand}"
+                            Padding="14,6" Margin="8,0,0,0" />
+                    <TextBox Text="{Binding AiPrompt, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True" MinHeight="64" MaxHeight="120"
+                             TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+                </DockPanel>
+            </GroupBox>
+
+            <GroupBox Grid.Row="1" Header="Safety notice">
+                <TextBlock Margin="8" TextWrapping="Wrap" Foreground="#555">
+                    UniMouse replays documented OS-level input (SendInput) only.
+                    Game cheating (aimbot, triggerbot, wallhack), anti-cheat evasion,
+                    memory reading, injection and spoofing are refused by policy —
+                    both here and in the AI service. Always review a generated macro
+                    before running it. Emergency stop: Ctrl+Alt+F12.
+                </TextBlock>
+            </GroupBox>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                <Button Content="▶  Play" Command="{Binding PlayMacroCommand}"
+                        Padding="18,8" Margin="0,0,8,0" FontSize="14" />
+                <Button Content="■  Stop" Command="{Binding StopMacroCommand}"
+                        Padding="18,8" FontSize="14" />
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</Window>
