@@ -34,3 +34,17 @@ def valid_macro_dict():
 
 def schema():
     return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+# --- shared fixtures -------------------------------------------------------
+import pytest  # noqa: E402
+
+
+@pytest.fixture()
+def client():
+    from fastapi.testclient import TestClient
+
+    from qwen_service.qwen_client import EchoBackend
+    from qwen_service.main import create_app
+
+    return TestClient(create_app(backend=EchoBackend()))

@@ -1,17 +1,6 @@
 from conftest import minimal_macro, valid_macro_dict, schema  # noqa: F401 (path setup)
 
 import pytest
-from fastapi.testclient import TestClient
-
-from qwen_service.qwen_client import EchoBackend
-from qwen_service.main import create_app  # noqa: E402
-
-
-@pytest.fixture()
-def client():
-    app = create_app(backend=EchoBackend())
-    return TestClient(app)
-
 
 def test_health(client):
     r = client.get("/health")
