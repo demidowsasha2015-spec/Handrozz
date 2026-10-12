@@ -1,0 +1,39 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.254
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniMouse.Wpf", "apps\unimouse.wpf\UniMouse.Wpf.csproj", "{1A0B5C62-7E3F-4C1B-9D2A-0F3B6A8E1111}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniMouse.Core", "libs\unimouse.core\UniMouse.Core.csproj", "{2B1C6D73-8F40-4D2C-AE3B-1A4C7B9F2222}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniMouse.Input", "libs\unimouse.input\UniMouse.Input.csproj", "{4D3E8F95-0162-4F4E-C05D-3C6E9DB14444}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniMouse.Core.Tests", "libs\unimouse.core.tests\UniMouse.Core.Tests.csproj", "{3C2D7E84-9051-4E3D-BF4C-2B5D8CA03333}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1A0B5C62-7E3F-4C1B-9D2A-0F3B6A8E1111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A0B5C62-7E3F-4C1B-9D2A-0F3B6A8E1111}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A0B5C62-7E3F-4C1B-9D2A-0F3B6A8E1111}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A0B5C62-7E3F-4C1B-9D2A-0F3B6A8E1111}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B1C6D73-8F40-4D2C-AE3B-1A4C7B9F2222}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B1C6D73-8F40-4D2C-AE3B-1A4C7B9F2222}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B1C6D73-8F40-4D2C-AE3B-1A4C7B9F2222}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B1C6D73-8F40-4D2C-AE3B-1A4C7B9F2222}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D3E8F95-0162-4F4E-C05D-3C6E9DB14444}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D3E8F95-0162-4F4E-C05D-3C6E9DB14444}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D3E8F95-0162-4F4E-C05D-3C6E9DB14444}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D3E8F95-0162-4F4E-C05D-3C6E9DB14444}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C2D7E84-9051-4E3D-BF4C-2B5D8CA03333}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C2D7E84-9051-4E3D-BF4C-2B5D8CA03333}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C2D7E84-9051-4E3D-BF4C-2B5D8CA03333}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C2D7E84-9051-4E3D-BF4C-2B5D8CA03333}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

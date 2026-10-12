@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unimouse.local/schemas/macro.schema.json",
+  "title": "UniMouse MacroDefinition",
+  "type": "object",
+  "required": ["schemaVersion", "id", "name", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$", "maxLength": 64 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "description": { "type": "string", "maxLength": 2000 },
+    "author": { "type": "string", "maxLength": 64 },
+    "createdAtUtc": { "type": "string", "format": "date-time" },
+    "repeatCount": { "type": "integer", "minimum": -1, "maximum": 10000 },
+    "repeatDelayMs": { "type": "integer", "minimum": 0, "maximum": 60000 },
+    "maxDurationMs": { "type": "integer", "minimum": 1, "maximum": 900000 },
+    "startHotkey": {
+      "type": ["object", "null"],
+      "required": ["keyCode"],
+      "additionalProperties": false,
+      "properties": {
+        "keyCode": { "type": "integer", "minimum": 1, "maximum": 254 },
+        "modifiers": { "type": "integer", "minimum": 0, "maximum": 15 }
+      }
+    },
+    "tags": { "type": "array", "items": { "type": "string", "maxLength": 32 }, "maxItems": 16 },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2000,
+      "items": { "$ref": "#/$defs/step" }
+    }
+  },
+  "$defs": {
+    "step": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["key", "text", "mouseMove", "mouseClick", "mouseScroll", "delay"] },
+        "delayBeforeMs": { "type": "integer", "minimum": 0, "maximum": 60000 },
+        "holdMs": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "keyCode": { "type": "integer", "minimum": 1, "maximum": 254 },
+        "text": { "type": "string", "minLength": 1, "maxLength": 10000 },
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "button": { "enum": ["left", "right", "middle"] },
+        "clicks": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "scroll": { "enum": ["up", "down"] },
+        "scrollAmount": { "type": "integer", "minimum": -120, "maximum": 120 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "key" } } },
+          "then": { "required": ["keyCode"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "text" } } },
+          "then": { "required": ["text"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "mouseMove" } } },
+          "then": { "required": ["x", "y"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "mouseClick" } } },
+          "then": { "required": ["button"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "mouseScroll" } } },
+          "then": { "required": ["scroll"] }
+        }
+      ]
+    }
+  }
+}

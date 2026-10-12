@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>UniMouse.Core</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Platform-neutral: models, JSON contracts, validation, scheduling.
+       NO Win32 input APIs here (those live in UniMouse.Input). -->
+
+</Project>
