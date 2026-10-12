@@ -149,8 +149,67 @@ class EchoBackend(LlmBackend):
         )
 
 
+class OpenAICompatBackend(LlmBackend):
+    """Backend for any OpenAI-compatible chat-completions server
+    (vLLM, llama.cpp server, LM Studio, TGI with openai shim...).
+
+    Environment:
+      OPENAI_BASE_URL   default http://127.0.0.1:8000/v1  (keep loopback!)
+      OPENAI_MODEL      default QWEN_MODEL or qwen2.5-coder-7b-instruct
+      OPENAI_API_KEY    optional; sent as Bearer token if set
+
+    Same safety posture as the rest of the service: temperature is pinned low,
+    output is treated as untrusted and validated downstream. Prefer serving the
+    model locally (vLLM on 127.0.0.1); if you point this at a remote endpoint,
+    remember the user's automation intent leaves the machine.
+    """
+
+    def __init__(
+        self,
+        base_url: str | None = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        timeout_s: float = 120,
+    ):
+        self.base_url = (base_url or os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:8000/v1")).rstrip("/")
+        self.model = model or os.environ.get("OPENAI_MODEL") or os.environ.get("QWEN_MODEL", "qwen2.5-coder-7b-instruct")
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY") or None
+        self.timeout = timeout_s
+
+    async def complete_macro(self, prompt: str, context: str, width: int, height: int) -> str:
+        user = (
+            f"Intent: {prompt}\n"
+            f"Context: {context or 'none'}\n"
+            f"Screen: {width}x{height}\n"
+            "Respond with the JSON object only."
+        )
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        body = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user},
+            ],
+            "temperature": 0.1,
+            "max_tokens": 4096,
+            "stream": False,
+        }
+        async with httpx.AsyncClient(base_url=self.base_url, headers=headers, timeout=self.timeout) as client:
+            r = await client.post("/chat/completions", json=body)
+            r.raise_for_status()
+            data = r.json()
+            choices = data.get("choices") or []
+            if not choices:
+                raise RuntimeError("OpenAI-compatible backend returned no choices")
+            return choices[0].get("message", {}).get("content", "")
+
+
 def make_backend() -> LlmBackend:
     kind = os.environ.get("QWEN_BACKEND", "ollama").lower()
     if kind == "echo":
         return EchoBackend()
+    if kind in ("openai", "vllm"):
+        return OpenAICompatBackend()
     return OllamaBackend()

@@ -147,7 +147,7 @@ apps/qwen-service/           # FastAPI + Qwen clients + pytest suite
 
 ## Roadmap / TODO
 
-- [x] Step editor grid in WPF (`Views/StepEditorWindow.xaml` + `ViewModels/StepEditorViewModel.cs`): inline-editable rows (kind combo, delays, friendly key names via `Core/Runtime/VirtualKey`, text, coords, buttons, scroll), per-row validation errors, add/remove/reorder; Save goes through `MacroValidator` before persisting — invalid macros can never be written. Drag-reorder still TODO (Up/Down buttons shipped)
+- [x] Step editor grid in WPF (`Views/StepEditorWindow.xaml` + `ViewModels/StepEditorViewModel.cs`): inline-editable rows (kind combo, delays, friendly key names via `Core/Runtime/VirtualKey`, text, coords, buttons, scroll), per-row validation errors, add/remove/reorder; Save goes through `MacroValidator` before persisting — invalid macros can never be written. Drag-reorder implemented (`PreviewMouseLeftButtonDown`/`PreviewMouseMove` + `DoDragDrop`, `StepEditorViewModel.MoveTo`) alongside Up/Down buttons; headless VM tests in `apps/unimouse.wpf.tests` (registered in the solution)
 - [ ] Macro recorder (capture real user input into steps, with explicit "recording" UX)
 - [x] Per-monitor DPI coordinate normalization helper (`libs/unimouse.core/Runtime/CoordinateSpace.cs` + xUnit tests)
 - [ ] Import/export dialog + signed macro sharing (read-only previews)
